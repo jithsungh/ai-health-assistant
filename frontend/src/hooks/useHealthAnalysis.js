@@ -7,9 +7,9 @@ export const useHealthAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const analyzeSymptoms = useCallback(async (symptoms, file = null) => {
-    if (!symptoms.trim() && !file) {
-      setError("Please enter symptoms or upload a file to analyze.");
+  const analyzeSymptoms = useCallback(async (symptoms) => {
+    if (!symptoms.trim()) {
+      setError("Please enter symptoms to analyze.");
       return false;
     }
 
@@ -18,14 +18,7 @@ export const useHealthAnalysis = () => {
     setAnalysisData(null);
 
     try {
-      let result;
-
-      if (file) {
-        result = await healthAPI.analyzeFile(file, symptoms);
-      } else {
-        result = await healthAPI.analyzeSymptoms(symptoms);
-      }
-
+      const result = await healthAPI.analyzeSymptoms(symptoms);
       setAnalysisData(result);
       return true;
     } catch (analysisError) {

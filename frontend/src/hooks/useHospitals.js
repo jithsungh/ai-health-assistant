@@ -6,9 +6,10 @@ export const useHospitals = () => {
   const [hospitals, setHospitals] = useState([]);
   const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [hospitalsError, setHospitalsError] = useState("");
+  const [radius, setRadius] = useState(15); // Default 15km radius
 
   const searchNearbyHospitals = useCallback(
-    async (lat, lng, hospitalType = "") => {
+    async (lat, lng, hospitalType = "", searchRadius = radius) => {
       if (!lat || !lng) {
         setHospitalsError("Location is required to find nearby hospitals");
         return false;
@@ -21,7 +22,8 @@ export const useHospitals = () => {
         const result = await healthAPI.findNearbyHospitals(
           lat,
           lng,
-          hospitalType
+          hospitalType,
+          searchRadius
         );
         setHospitals(result || []);
         return true;
@@ -34,8 +36,12 @@ export const useHospitals = () => {
         setLoadingHospitals(false);
       }
     },
-    []
+    [radius]
   );
+
+  const updateRadius = useCallback((newRadius) => {
+    setRadius(newRadius);
+  }, []);
 
   const clearHospitals = useCallback(() => {
     setHospitals([]);
@@ -47,7 +53,9 @@ export const useHospitals = () => {
     hospitals,
     loadingHospitals,
     hospitalsError,
+    radius,
     searchNearbyHospitals,
+    updateRadius,
     clearHospitals,
     hasHospitals: hospitals.length > 0,
   };

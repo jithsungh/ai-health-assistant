@@ -1,7 +1,8 @@
 // src/services/api.js
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+const API_BASE_URL =
+  import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -88,12 +89,13 @@ export const healthAPI = {
   },
 
   // Find nearby hospitals
-  findNearbyHospitals: async (lat, lng, hospitalType = "") => {
+  findNearbyHospitals: async (lat, lng, hospitalType = "", radius = 15) => {
     try {
       const response = await api.post("/nearby-hospitals", {
         lat,
         lng,
         hospitalType,
+        radius,
       });
       return response.data;
     } catch (error) {

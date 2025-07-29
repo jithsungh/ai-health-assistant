@@ -217,15 +217,78 @@ const AnalysisResults = ({ analysisData, onSearchHospitals }) => {
               >
                 🔍 Possible Reasons
               </h3>
-              <p
-                style={{
-                  color: "#744210",
-                  fontSize: "16px",
-                  lineHeight: "1.6",
-                }}
-              >
-                {analysisData["possible-reasons"]}
-              </p>
+              {Array.isArray(analysisData["possible-reasons"]) ? (
+                <ul
+                  style={{
+                    color: "#744210",
+                    fontSize: "16px",
+                    lineHeight: "1.8",
+                    paddingLeft: "20px",
+                    margin: "0",
+                  }}
+                >
+                  {analysisData["possible-reasons"].map((reason, index) => (
+                    <li
+                      key={index}
+                      style={{
+                        marginBottom: "8px",
+                        listStyleType: "disc",
+                      }}
+                    >
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div
+                  style={{
+                    color: "#744210",
+                    fontSize: "16px",
+                    lineHeight: "1.8",
+                  }}
+                >
+                  {typeof analysisData["possible-reasons"] === "string" &&
+                  analysisData["possible-reasons"].includes("•") ? (
+                    <ul
+                      style={{
+                        paddingLeft: "20px",
+                        margin: "0",
+                      }}
+                    >
+                      {analysisData["possible-reasons"]
+                        .split("•")
+                        .filter((item) => item.trim())
+                        .map((reason, index) => (
+                          <li
+                            key={index}
+                            style={{
+                              marginBottom: "8px",
+                              listStyleType: "disc",
+                            }}
+                          >
+                            {reason.trim()}
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <ul
+                      style={{
+                        paddingLeft: "20px",
+                        margin: "0",
+                      }}
+                    >
+                      <li
+                        style={{
+                          marginBottom: "8px",
+                          listStyleType: "disc",
+                        }}
+                      >
+                        {analysisData["possible-reasons"]}
+                      </li>
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

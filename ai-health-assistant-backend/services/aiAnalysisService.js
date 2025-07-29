@@ -11,15 +11,15 @@ class AIAnalysisService {
     try {
       const apiKey = this.geminiManager.getNextAPIKey();
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       let prompt = `You are a medical AI assistant. Analyze the following symptoms and provide a structured response in JSON format.
 
 Based on the symptoms provided, return a JSON object with the following fields:
-- detectedSymptoms: A clear summary of the symptoms
-- hospitalType: The most appropriate type of hospital/specialist (e.g., "General Medicine", "Cardiology", "Emergency", "Orthopedics", etc.)
-- possible-reasons: Possible medical reasons for these symptoms
-- dietPlan: An array of dietary recommendations
+- detectedSymptoms: extracted symptoms and a clear summary of the symptoms
+- hospitalType: The most appropriate type of hospital - for searching in google maps (e.g., "Hospital" - for general purpose, "Cardio" or "Heart Hospital", "Skin Clinic", "Eye care", "Emergency hospital", "Orthopedic Hospital", etc.)
+- possible-reasons: Possible medical reasons for these symptoms - array of bullets
+- dietPlan: An array of dietary recommendations - array of bullets
 - severity: "Low", "Medium", or "High"
 - urgency: "Routine", "Urgent", or "Emergency"
 
