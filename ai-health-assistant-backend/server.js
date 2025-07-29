@@ -1,98 +1,85 @@
-// server.js
-const express = require('express');
-const multer = require('multer');
-const cors = require('cors');
-const fs = require('fs');
-const pdfParse = require('pdf-parse');
-const axios = require('axios');
-const app = express();
-const upload = multer({ dest: 'uploads/' });
+// server.js - Refactored main server file
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const errorHandler = require("./middleware/errorHandler");
+const {
+  generalLimiter,
+  analysisLimiter,
+  hospitalLimiter,
+} = require("./middleware/rateLimiter");
+const analysisRoutes = require("./routes/analysisRoutes");
+const createLocationRoutes = require("./routes/locationRoutes");
 
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(generalLimiter); // Apply general rate limiting to all routes
 
-const API_KEY = 'AIzaSyBkHqR11h99b_P03DIED7fDXuC_bRGgBug'; // 🔴 Replace with your actual key
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({
+    status: "OK",
+    message: "AI Health Assistant Backend is running",
+    timestamp: new Date().toISOString(),
+  });
+});
 
-// Symptom analysis
-function analyzeSymptoms(symptoms) {
-  const symptomText = symptoms.toLowerCase();
-  const detected = [];
+// API Routes
+app.use("/", analysisLimiter, analysisRoutes); // Apply analysis rate limiting
+app.use("/", hospitalLimiter, createLocationRoutes(process.env.gmaps_API_KEY)); // Apply hospital rate limiting
 
-  if (symptomText.includes('fever')) detected.push('fever');
-  if (symptomText.includes('cold')) detected.push('cold');
-  if (symptomText.includes('cough')) detected.push('cough');
-  if (symptomText.includes('headache')) detected.push('headache');
+// Error handling middleware (should be last)
+app.use(errorHandler);
 
-  return detected;
-}
+// 404 handler
+app.use("*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "Route not found",
+  });
+});
 
-// Diet suggestion
-function getDietPlan(symptoms) {
-  if (symptoms.includes('fever')) return 'Drink plenty of fluids, rest, and eat easily digestible food.';
-  if (symptoms.includes('cold')) return 'Drink hot water, herbal tea, and eat vitamin C-rich fruits.';
-  if (symptoms.includes('cough')) return 'Avoid cold drinks, consume honey and ginger.';
-  if (symptoms.includes('headache')) return 'Stay hydrated, rest in a quiet room, and avoid screen time.';
-  return 'Maintain a balanced diet and stay hydrated.';
-}
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 AI Health Assistant Backend running on port ${PORT}`);
+  console.log(`📊 Health check available at: http://localhost:${PORT}/health`);
 
-// Analyze symptoms route
-app.post('/analyze', upload.single('file'), async (req, res) => {
-  try {
-    let symptoms = req.body.symptoms || '';
+  // Validate environment variables
+  if (!process.env.gmaps_API_KEY) {
+    console.warn(
+      "⚠️  Warning: Google Maps API key not found in environment variables"
+    );
+  }
 
-    if (req.file) {
-      const dataBuffer = fs.readFileSync(req.file.path);
-      const pdfData = await pdfParse(dataBuffer);
-      symptoms += ' ' + pdfData.text;
-      fs.unlinkSync(req.file.path); // Cleanup
+  let geminiKeyCount = 0;
+  for (let i = 1; i <= 20; i++) {
+    if (process.env[`gemini_API_KEY_${i}`]) {
+      geminiKeyCount++;
     }
-
-    const detectedSymptoms = analyzeSymptoms(symptoms);
-    const dietPlan = getDietPlan(detectedSymptoms.join(' '));
-
-    res.json({ symptoms: detectedSymptoms.join(', '), diet: dietPlan });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error analyzing symptoms' });
   }
-});
 
-// Geocoding route
-app.post('/get-address', async (req, res) => {
-  const { lat, lng } = req.body;
-  try {
-    const response = await axios.get(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${API_KEY}`
+  if (geminiKeyCount === 0) {
+    console.warn(
+      "⚠️  Warning: No Gemini API keys found in environment variables"
     );
-    const address = response.data.results[0]?.formatted_address || 'Address not found';
-    res.json({ address });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ address: 'Address not found' });
+  } else {
+    console.log(`🔑 Found ${geminiKeyCount} Gemini API keys`);
   }
 });
 
-// Nearby hospitals route
-app.post('/nearby-hospitals', async (req, res) => {
-  const { lat, lng } = req.body;
-  try {
-    const response = await axios.get(
-      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=30000&type=hospital&key=${API_KEY}`
-    );
-    console.log(response.data);
-    const hospitals = response.data.results.slice(0, 5).map(place => ({
-      name: place.name,
-      address: place.vicinity,
-      place_id: place.place_id,
-      rating: place.rating || 'N/A'
-    }));
-    res.json({ hospitals });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ hospitals: [] });
-  }
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received. Shutting down gracefully...");
+  process.exit(0);
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
- 
+process.on("SIGINT", () => {
+  console.log("SIGINT received. Shutting down gracefully...");
+  process.exit(0);
+});
+
+module.exports = app;

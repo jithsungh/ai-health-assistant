@@ -1,196 +1,305 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useRef, useEffect } from "react";
+import ProgressIndicator from "./components/common/ProgressIndicator";
+import StepLabels from "./components/common/StepLabels";
+import MessageDisplay from "./components/common/MessageDisplay";
+import LocationInput from "./components/location/LocationInput";
+import FileUpload from "./components/symptoms/FileUpload";
+import SymptomsInput from "./components/symptoms/SymptomsInput";
+import AnalysisResults from "./components/analysis/AnalysisResults";
+import HospitalsList from "./components/hospitals/HospitalsList";
+import useLocation from "./hooks/useLocation";
+import useHealthAnalysis from "./hooks/useHealthAnalysis";
+import useHospitals from "./hooks/useHospitals";
 
 function App() {
-  const [symptoms, setSymptoms] = useState('');
+  const [symptoms, setSymptoms] = useState("");
   const [file, setFile] = useState(null);
-  const [analysis, setAnalysis] = useState('');
-  const [diet, setDiet] = useState('');
-  const [lat, setLat] = useState('');
-  const [lng, setLng] = useState('');
-  const [address, setAddress] = useState('');
-  const [hospitals, setHospitals] = useState([]);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [message, setMessage] = useState({ text: "", type: "" });
 
-  const handleLocation = () => {
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      const latitude = position.coords.latitude;
-      const longitude = position.coords.longitude;
-      setLat(latitude);
-      setLng(longitude);
+  // Refs for auto-scrolling
+  const analysisRef = useRef(null);
+  const hospitalsRef = useRef(null);
 
-      try {
-        const res = await axios.post('http://localhost:5000/get-address', { lat: latitude, lng: longitude });
-        setAddress(res.data.address);
-      } catch {
-        setAddress('Address not found');
-      }
+  // Custom hooks
+  const {
+    lat,
+    lng,
+    address,
+    locationError,
+    isGettingLocation,
+    getCurrentLocation,
+    hasLocation,
+  } = useLocation();
 
-      try {
-        const hosp = await axios.post('http://localhost:5000/nearby-hospitals', { lat: latitude, lng: longitude });
-        setHospitals(hosp.data.hospitals);
-      } catch {
-        setHospitals([]);
-      }
-    }, () => {
-      alert('Location access denied');
-    });
+  const {
+    analysisData,
+    loading,
+    error: analysisError,
+    analyzeSymptoms,
+    hasAnalysis,
+  } = useHealthAnalysis();
+
+  const {
+    hospitals,
+    loadingHospitals,
+    hospitalsError,
+    searchNearbyHospitals,
+    hasHospitals,
+  } = useHospitals();
+
+  // Function to display messages to the user
+  const showMessage = (text, type = "info") => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: "", type: "" }), 5000);
   };
 
-  const handleCheck = async () => {
-    const formData = new FormData();
-    formData.append('symptoms', symptoms);
-    if (file) formData.append('file', file);
-
-    try {
-      const res = await axios.post('http://localhost:5000/analyze', formData);
-      setAnalysis(res.data.symptoms);
-      setDiet(res.data.diet);
-    } catch {
-      setAnalysis('Error analyzing symptoms');
-      setDiet('');
+  // Auto-scroll to element
+  const scrollToElement = (ref) => {
+    if (ref && ref.current) {
+      ref.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
     }
   };
 
+  // Handle location getting
+  const handleGetLocation = async () => {
+    const success = await getCurrentLocation();
+    if (success) {
+      setCurrentStep(Math.max(currentStep, 2));
+      showMessage("Location obtained successfully!", "success");
+    } else if (locationError) {
+      showMessage(locationError, "error");
+    }
+  };
+
+  // Handle symptom analysis
+  const handleAnalyze = async () => {
+    const success = await analyzeSymptoms(symptoms, file);
+    if (success) {
+      setShowAnalysis(true);
+      setCurrentStep(3);
+      showMessage("Analysis complete!", "success");
+
+      // Auto-scroll to analysis section
+      setTimeout(() => {
+        scrollToElement(analysisRef);
+      }, 500);
+
+      // Automatically search for hospitals if location is available
+      if (hasLocation && analysisData?.hospitalType) {
+        setTimeout(async () => {
+          await handleSearchHospitals(analysisData.hospitalType);
+        }, 2000);
+      }
+    } else if (analysisError) {
+      showMessage(analysisError, "error");
+    }
+  };
+
+  // Handle hospital search
+  const handleSearchHospitals = async (hospitalType = "") => {
+    if (!hasLocation) {
+      showMessage(
+        "Please get your location first to find nearby hospitals.",
+        "error"
+      );
+      return;
+    }
+
+    const success = await searchNearbyHospitals(lat, lng, hospitalType);
+    if (success) {
+      setCurrentStep(4);
+      // Auto-scroll to hospitals section
+      setTimeout(() => {
+        scrollToElement(hospitalsRef);
+      }, 500);
+    } else if (hospitalsError) {
+      showMessage(hospitalsError, "error");
+    }
+  };
+
+  // Get location on component mount
+  useEffect(() => {
+    handleGetLocation();
+  }, []);
+
+  // Show analysis error messages
+  useEffect(() => {
+    if (analysisError) {
+      showMessage(analysisError, "error");
+    }
+  }, [analysisError]);
+
+  // Show hospitals error messages
+  useEffect(() => {
+    if (hospitalsError) {
+      showMessage(hospitalsError, "error");
+    }
+  }, [hospitalsError]);
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(to right, #e0f7fa, #e0ffe0)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '20px',
-      fontFamily: 'Segoe UI, sans-serif'
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '600px',
-        background: 'white',
-        padding: '30px',
-        borderRadius: '20px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-      }}>
-        <h1 style={{
-          fontSize: '2rem',
-          fontWeight: 'bold',
-          marginBottom: '20px',
-          color: '#00695c',
-          textAlign: 'center'
-        }}>
-          🩺 <span style={{ color: '#00695c' }}>AI Health Symptom Checker</span>
-        </h1>
-
-        <button onClick={handleLocation} style={{
-          width: '100%',
-          backgroundColor: '#00c853',
-          color: 'white',
-          padding: '12px',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          border: 'none',
-          borderRadius: '12px',
-          marginBottom: '10px',
-          cursor: 'pointer'
-        }}>
-          📍 Locate Me
-        </button>
-
-        <p>📌 <strong>Location:</strong> {address}</p>
-        <p>📍 <strong>Coordinates:</strong> {lat && lng ? `${lat}, ${lng}` : ''}</p>
-
-        <div style={{ marginTop: '10px' }}>
-          <input
-            type="file"
-            onChange={(e) => setFile(e.target.files[0])}
-            style={{
-              backgroundColor: '#c8f7d3',
-              padding: '6px',
-              borderRadius: '10px',
-              border: 'none',
-              fontWeight: 'bold',
-              marginRight: '10px'
-            }}
-          />
-        </div>
-
-        <textarea
-          placeholder="Enter your symptoms here..."
-          value={symptoms}
-          onChange={(e) => setSymptoms(e.target.value)}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        padding: "20px",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1400px",
+          margin: "0 auto",
+        }}
+      >
+        {/* Header */}
+        <div
           style={{
-            width: '100%',
-            marginTop: '10px',
-            height: '100px',
-            padding: '10px',
-            fontSize: '16px',
-            borderRadius: '10px',
-            border: '1px solid #ccc',
-            resize: 'none'
+            textAlign: "center",
+            marginBottom: "40px",
+            padding: "30px",
           }}
-        />
-
-        <button onClick={handleCheck} style={{
-          width: '100%',
-          marginTop: '15px',
-          padding: '12px',
-          backgroundColor: '#00b0ff',
-          color: 'white',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          border: 'none',
-          borderRadius: '12px',
-          cursor: 'pointer'
-        }}>
-          🔍 Check with AI
-        </button>
-
-        <div style={{
-          backgroundColor: '#e8fff0',
-          marginTop: '25px',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #b2dfdb'
-        }}>
-          <h3 style={{ color: '#00796b', marginBottom: '10px' }}>
-            📄 <strong>Analysis</strong>
-          </h3>
-          <p><strong>Detected symptoms:</strong> {analysis}</p>
+        >
+          <h1
+            style={{
+              fontSize: "3.5rem",
+              fontWeight: "900",
+              color: "white",
+              textShadow: "3px 3px 6px rgba(0,0,0,0.3)",
+              marginBottom: "15px",
+              letterSpacing: "-1px",
+            }}
+          >
+            🩺 AI Health Assistant
+          </h1>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.95)",
+              fontSize: "1.3rem",
+              fontWeight: "400",
+              maxWidth: "600px",
+              margin: "0 auto",
+              lineHeight: "1.6",
+            }}
+          >
+            Your intelligent healthcare companion for symptom analysis and
+            medical guidance
+          </p>
         </div>
 
-        <div style={{
-          backgroundColor: '#fff4e6',
-          marginTop: '20px',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #ffcc80'
-        }}>
-          <h3 style={{ color: '#d84315', marginBottom: '10px' }}>
-            🥗 <strong>Suggested Diet Plan</strong>
-          </h3>
-          <p>{diet}</p>
-        </div>
+        {/* Message Display */}
+        <MessageDisplay message={message} />
 
-        <div style={{
-          backgroundColor: '#f3f4ff',
-          marginTop: '20px',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #c5cae9'
-        }}>
-          <h3 style={{ color: '#3f51b5', marginBottom: '10px' }}>
-            🏥 <strong>Nearby Hospitals</strong>
-          </h3>
-          {hospitals.length > 0 ? (
-            hospitals.map((h, index) => (
-              <div key={index} style={{ marginBottom: '15px' }}>
-                <strong style={{ fontSize: '1rem' }}>{h.name}</strong><br />
-                📍 <span>{h.address}</span><br />
-                ⭐ <span>Rating: {h.rating}</span>
-              </div>
-            ))
-          ) : (
-            <p>No nearby hospitals found.</p>
+        {/* Progress Indicator */}
+        <ProgressIndicator currentStep={currentStep} />
+        <StepLabels currentStep={currentStep} />
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(450px, 1fr))",
+            gap: "30px",
+          }}
+        >
+          {/* Input Section */}
+          <div
+            style={{
+              background: "rgba(255, 255, 255, 0.98)",
+              padding: "40px",
+              borderRadius: "25px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+              backdropFilter: "blur(15px)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              transition: "all 0.3s ease",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "2.2rem",
+                fontWeight: "700",
+                marginBottom: "30px",
+                color: "#2d3748",
+                textAlign: "center",
+                background: "linear-gradient(45deg, #667eea, #764ba2)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              {currentStep === 1 && "Step 1: Get Your Location"}
+              {currentStep === 2 && "Step 2: Describe Symptoms"}
+              {currentStep === 3 && "Step 3: AI Analysis"}
+              {currentStep === 4 && "Step 4: Find Hospitals"}
+            </h2>
+
+            <LocationInput
+              lat={lat}
+              lng={lng}
+              address={address}
+              onGetLocation={handleGetLocation}
+            />
+
+            <FileUpload
+              file={file}
+              onFileChange={(e) => setFile(e.target.files[0])}
+            />
+
+            <SymptomsInput
+              symptoms={symptoms}
+              onSymptomsChange={(e) => setSymptoms(e.target.value)}
+            />
+
+            <button
+              onClick={handleAnalyze}
+              disabled={loading || (!symptoms.trim() && !file)}
+              style={{
+                width: "100%",
+                padding: "15px",
+                backgroundColor: loading ? "#a0aec0" : "#667eea",
+                color: "white",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+                borderRadius: "12px",
+                cursor: loading ? "not-allowed" : "pointer",
+                transition: "all 0.3s ease",
+                position: "relative",
+              }}
+              onMouseOver={(e) =>
+                !loading && (e.target.style.backgroundColor = "#5a67d8")
+              }
+              onMouseOut={(e) =>
+                !loading && (e.target.style.backgroundColor = "#667eea")
+              }
+            >
+              {loading ? "🔄 Analyzing..." : "🔍 Analyze with AI"}
+            </button>
+          </div>
+
+          {/* Analysis Results Section */}
+          {showAnalysis && hasAnalysis && (
+            <div ref={analysisRef}>
+              <AnalysisResults
+                analysisData={analysisData}
+                onSearchHospitals={handleSearchHospitals}
+              />
+            </div>
           )}
         </div>
+
+        {/* Hospitals Section */}
+        {hasHospitals && (
+          <div ref={hospitalsRef}>
+            <HospitalsList
+              hospitals={hospitals}
+              loadingHospitals={loadingHospitals}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
