@@ -65,21 +65,72 @@ function App() {
     }
   };
 
-  // Handle location getting
+  // Handle location getting with better error handling
   const handleGetLocation = async () => {
     const success = await getCurrentLocation();
-    if (success) {
-      setCurrentStep(Math.max(currentStep, 2));
-      showMessage("Location obtained successfully!", "success");
+    if (success && address && address !== "Address not available") {
+      setCurrentStep(2);
+      showMessage(
+        "✅ Location obtained successfully! You can now proceed to describe your symptoms.",
+        "success"
+      );
+    } else if (success && (!address || address === "Address not available")) {
+      // Have coordinates but no proper address
+      showMessage(
+        "⚠️ Location obtained but address could not be determined. Please try again or check your internet connection.",
+        "warning"
+      );
+      setCurrentStep(1);
     } else if (locationError) {
-      showMessage(locationError, "error");
+      if (
+        locationError.includes("denied") ||
+        locationError.includes("permission")
+      ) {
+        showMessage(
+          "🚫 Location access denied. Please enable location permissions in your browser settings and try again.",
+          "error"
+        );
+      } else if (locationError.includes("unavailable")) {
+        showMessage(
+          "📡 Location service unavailable. Please check your device's location settings and try again.",
+          "error"
+        );
+      } else if (locationError.includes("timeout")) {
+        showMessage(
+          "⏱️ Location request timed out. Please try again or check your internet connection.",
+          "error"
+        );
+      } else {
+        showMessage(
+          `❌ Location Error: ${locationError}. Please try again or enable location services.`,
+          "error"
+        );
+      }
+      // Keep user on step 1 until location is obtained
+      setCurrentStep(1);
     }
   };
 
-  // Navigation functions
+  // Navigation functions - improved to prevent advancing without location
   const handleStepChange = (step) => {
-    if (step <= currentStep) {
+    // Only allow navigation to steps that have been completed
+    if (step === 1) {
       setCurrentStep(step);
+    } else if (step === 2 && hasLocation) {
+      setCurrentStep(step);
+    } else if (step === 3 && hasLocation && hasAnalysis) {
+      setCurrentStep(step);
+    } else if (step === 4 && hasLocation && hasAnalysis && hasHospitals) {
+      setCurrentStep(step);
+    } else if (step > 1 && !hasLocation) {
+      showMessage(
+        "Please obtain your location first before proceeding.",
+        "error"
+      );
+    } else if (step === 3 && !hasAnalysis) {
+      showMessage("Please complete symptom analysis first.", "error");
+    } else if (step === 4 && !hasHospitals) {
+      showMessage("Please search for hospitals first.", "error");
     }
   };
 
@@ -100,13 +151,30 @@ function App() {
 
   const canGoBack = currentStep > 1;
 
-  // Handle symptom analysis
+  // Handle symptom analysis with better error handling
   const handleAnalyze = async () => {
+    if (!hasLocation) {
+      showMessage(
+        "📍 Please get your location first before analyzing symptoms.",
+        "error"
+      );
+      setCurrentStep(1);
+      return;
+    }
+
+    if (!symptoms.trim()) {
+      showMessage("📝 Please enter your symptoms before analysis.", "error");
+      return;
+    }
+
     const success = await analyzeSymptoms(symptoms);
     if (success) {
       setShowAnalysis(true);
       setCurrentStep(3);
-      showMessage("Analysis complete!", "success");
+      showMessage(
+        "✅ Analysis complete! Review your results below.",
+        "success"
+      );
 
       // Auto-scroll to analysis section
       setTimeout(() => {
@@ -120,20 +188,77 @@ function App() {
         }, 2000);
       }
     } else if (analysisError) {
-      showMessage(analysisError, "error");
+      // Handle specific error types with better messaging
+      if (
+        analysisError.includes("rate limit") ||
+        analysisError.includes("quota") ||
+        analysisError.includes("too many requests")
+      ) {
+        showMessage(
+          "⏳ Too many requests to the AI service. Please wait a few minutes and try again.",
+          "error"
+        );
+      } else if (
+        analysisError.includes("network") ||
+        analysisError.includes("connection") ||
+        analysisError.includes("fetch")
+      ) {
+        showMessage(
+          "🌐 Network connection issue. Please check your internet and try again.",
+          "error"
+        );
+      } else if (analysisError.includes("timeout")) {
+        showMessage(
+          "⏱️ Request timed out. The AI service might be busy. Please try again in a moment.",
+          "error"
+        );
+      } else if (
+        analysisError.includes("unauthorized") ||
+        analysisError.includes("403") ||
+        analysisError.includes("401")
+      ) {
+        showMessage(
+          "🔑 Service authorization issue. Please contact support if this persists.",
+          "error"
+        );
+      } else if (
+        analysisError.includes("500") ||
+        analysisError.includes("server")
+      ) {
+        showMessage(
+          "🛠️ Server error. Please try again in a few minutes.",
+          "error"
+        );
+      } else {
+        showMessage(
+          `❌ Analysis failed: ${analysisError}. Please check your symptoms and try again.`,
+          "error"
+        );
+      }
+      // Stay on current step if analysis fails
     }
   };
 
-  // Handle hospital search
+  // Handle hospital search with better error handling
   const handleSearchHospitals = async (
     hospitalType = "",
     searchRadius = radius
   ) => {
     if (!hasLocation) {
       showMessage(
-        "Please get your location first to find nearby hospitals.",
+        "🗺️ Location required: Please get your location first to find nearby hospitals.",
         "error"
       );
+      setCurrentStep(1);
+      return;
+    }
+
+    if (!hasAnalysis) {
+      showMessage(
+        "📋 Analysis required: Please analyze your symptoms first to search for appropriate hospitals.",
+        "error"
+      );
+      setCurrentStep(2);
       return;
     }
 
@@ -145,12 +270,55 @@ function App() {
     );
     if (success) {
       setCurrentStep(4);
+      const hospitalCount = hospitals?.length || 0;
+      if (hospitalCount > 0) {
+        showMessage(
+          `🏥 Found ${hospitalCount} hospitals within ${searchRadius}km!`,
+          "success"
+        );
+      } else {
+        showMessage(
+          `🔍 No hospitals found within ${searchRadius}km. Try increasing the search radius.`,
+          "warning"
+        );
+      }
       // Auto-scroll to hospitals section
       setTimeout(() => {
         scrollToElement(hospitalsRef);
       }, 500);
     } else if (hospitalsError) {
-      showMessage(hospitalsError, "error");
+      // Handle specific hospital search errors
+      if (
+        hospitalsError.includes("rate limit") ||
+        hospitalsError.includes("quota")
+      ) {
+        showMessage(
+          "⏳ Too many location requests. Please wait a moment and try again.",
+          "error"
+        );
+      } else if (
+        hospitalsError.includes("network") ||
+        hospitalsError.includes("connection")
+      ) {
+        showMessage(
+          "🌐 Network issue while searching hospitals. Please check your connection.",
+          "error"
+        );
+      } else if (
+        hospitalsError.includes("location") ||
+        hospitalsError.includes("coordinates")
+      ) {
+        showMessage(
+          "📍 Invalid location data. Please refresh your location and try again.",
+          "error"
+        );
+        setCurrentStep(1);
+      } else {
+        showMessage(
+          `🏥 Hospital search failed: ${hospitalsError}. Please try again.`,
+          "error"
+        );
+      }
     }
   };
 
@@ -177,33 +345,121 @@ function App() {
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        padding: "20px",
-        fontFamily: "system-ui, -apple-system, sans-serif",
+        background:
+          "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
+        backgroundAttachment: "fixed",
+        fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+        padding: "0",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      {/* Animated background overlay */}
       <div
         style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background:
+            "radial-gradient(ellipse at top, rgba(255,255,255,0.1) 0%, transparent 70%)",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+
+      {/* Floating particles animation */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `
+            radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.3), transparent),
+            radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.2), transparent),
+            radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.3), transparent),
+            radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.2), transparent),
+            radial-gradient(2px 2px at 160px 30px, rgba(255,255,255,0.3), transparent)
+          `,
+          backgroundRepeat: "repeat",
+          backgroundSize: "200px 100px",
+          animation: "float 20s ease-in-out infinite",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+
+      <style>
+        {`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) translateX(0px); }
+            33% { transform: translateY(-10px) translateX(5px); }
+            66% { transform: translateY(5px) translateX(-5px); }
+          }
+          @keyframes slideIn {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          @keyframes fadeInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+          @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+            50% { box-shadow: 0 0 30px rgba(255,255,255,0.5), 0 0 40px rgba(102,126,234,0.3); }
+          }
+          .slide-in { animation: slideIn 0.6s ease-out; }
+          .fade-in-up { animation: fadeInUp 0.5s ease-out; }
+          .pulse-hover:hover { animation: pulse 2s ease-in-out infinite; }
+          .glow-effect { animation: glow 3s ease-in-out infinite; }
+        `}
+      </style>
+
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
           maxWidth: "1400px",
           margin: "0 auto",
         }}
       >
         {/* Header */}
         <div
+          className="slide-in"
           style={{
             textAlign: "center",
             marginBottom: "40px",
-            padding: "30px",
+            padding: "40px 30px",
+            background: "rgba(255,255,255,0.1)",
+            backdropFilter: "blur(20px)",
+            borderRadius: "25px",
+            margin: "20px 20px 40px 20px",
+            border: "1px solid rgba(255,255,255,0.2)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
           }}
         >
           <h1
+            className="glow-effect"
             style={{
-              fontSize: "3.5rem",
+              fontSize: "4rem",
               fontWeight: "900",
-              color: "white",
-              textShadow: "3px 3px 6px rgba(0,0,0,0.3)",
-              marginBottom: "15px",
-              letterSpacing: "-1px",
+              background:
+                "linear-gradient(135deg, #ffffff 0%, #f0f9ff 50%, #e1f5fe 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              textShadow: "0 4px 20px rgba(255,255,255,0.3)",
+              marginBottom: "20px",
+              letterSpacing: "-2px",
+              textAlign: "center",
+              borderRadius: "10px",
             }}
           >
             🩺 AI Health Assistant
@@ -211,16 +467,27 @@ function App() {
           <p
             style={{
               color: "rgba(255,255,255,0.95)",
-              fontSize: "1.3rem",
-              fontWeight: "400",
-              maxWidth: "600px",
+              fontSize: "1.4rem",
+              fontWeight: "300",
+              maxWidth: "700px",
               margin: "0 auto",
               lineHeight: "1.6",
+              textShadow: "0 2px 4px rgba(0,0,0,0.2)",
             }}
           >
-            Your intelligent healthcare companion for symptom analysis and
-            medical guidance
+            Get intelligent health insights powered by advanced AI technology
           </p>
+          <div
+            style={{
+              width: "100px",
+              height: "4px",
+              background:
+                "linear-gradient(90deg, #ffffff 0%, #60a5fa 50%, #a78bfa 100%)",
+              margin: "25px auto",
+              borderRadius: "2px",
+              boxShadow: "0 2px 10px rgba(255,255,255,0.3)",
+            }}
+          />
         </div>
 
         {/* Message Display */}
@@ -284,20 +551,52 @@ function App() {
                 style={{
                   fontSize: "2.2rem",
                   fontWeight: "700",
-                  marginBottom: "30px",
+                  marginBottom: "20px",
                   color: "#2d3748",
                   textAlign: "center",
                   background: "linear-gradient(45deg, #667eea, #764ba2)",
                   WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  WebkitTextFillColor: "#2d3748",
                 }}
               >
                 📝 Step 2: Describe Your Symptoms
               </h2>
+
+              {/* Show obtained location */}
+              {hasLocation && address && (
+                <div
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%)",
+                    border: "2px solid #4fd1c7",
+                    borderRadius: "15px",
+                    padding: "15px 20px",
+                    marginBottom: "25px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ fontSize: "1.2rem", marginBottom: "5px" }}>
+                    📍
+                  </div>
+                  <p
+                    style={{
+                      margin: "0",
+                      color: "#234e52",
+                      fontWeight: "600",
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    Location confirmed: {address}
+                  </p>
+                </div>
+              )}
+
               <SymptomsInput
                 symptoms={symptoms}
                 onSymptomsChange={(e) => setSymptoms(e.target.value)}
               />
+
+              {/* Enhanced Analyze Button with Better Loading */}
               <button
                 onClick={handleAnalyze}
                 disabled={loading || !symptoms.trim()}
@@ -314,7 +613,13 @@ function App() {
                   transition: "all 0.3s ease",
                   position: "relative",
                   marginTop: "20px",
-                  boxShadow: "0 8px 20px rgba(102, 126, 234, 0.3)",
+                  boxShadow: loading
+                    ? "none"
+                    : "0 8px 20px rgba(102, 126, 234, 0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
                 }}
                 onMouseOver={(e) =>
                   !loading && (e.target.style.backgroundColor = "#5a67d8")
@@ -323,10 +628,34 @@ function App() {
                   !loading && (e.target.style.backgroundColor = "#667eea")
                 }
               >
-                {loading
-                  ? "🔄 Analyzing Your Symptoms..."
-                  : "🔍 Analyze with AI"}
+                {loading ? (
+                  <>
+                    <div
+                      style={{
+                        width: "20px",
+                        height: "20px",
+                        border: "2px solid rgba(255,255,255,0.3)",
+                        borderTop: "2px solid white",
+                        borderRadius: "50%",
+                        animation: "spin 1s linear infinite",
+                      }}
+                    />
+                    Analyzing Your Symptoms...
+                  </>
+                ) : (
+                  <>🔍 Analyze with AI</>
+                )}
               </button>
+
+              {/* Add CSS for spinner animation */}
+              <style>
+                {`
+                  @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `}
+              </style>
             </div>
           )}
 
@@ -346,6 +675,7 @@ function App() {
                   background: "linear-gradient(45deg, #667eea, #764ba2)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
+                  textShadow: "0 2px 4px rgba(0,0,0,0.1)",
                 }}
               >
                 🔍 Step 3: AI Analysis Results

@@ -8,60 +8,72 @@ const SymptomsInput = ({ symptoms, onSymptomsChange }) => {
     .filter((word) => word.length > 0).length;
 
   return (
-    <div style={{ marginBottom: "20px" }}>
+    <div
+      className="fade-in-up"
+      style={{
+        marginBottom: "30px",
+        height: "100%",
+        background: "rgba(255,255,255,0.1)",
+        backdropFilter: "blur(5px)",
+        padding: "30px",
+        borderRadius: "25px",
+        border: "1px solid rgba(255,255,255,0.2)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+      }}
+    >
       <label
         style={{
           display: "block",
-          marginBottom: "15px",
+          marginBottom: "20px",
           fontWeight: "700",
-          color: "#4a5568",
-          fontSize: "18px",
-          textAlign: "center",
+          color: "white",
+          fontSize: "20px",
+          textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+          background: "linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "#2d3748",
+          backgroundClip: "text",
         }}
       >
-        📝 Describe Your Symptoms in Detail
       </label>
       <div style={{ position: "relative" }}>
         <textarea
-          placeholder="Please describe your symptoms in detail...
-
-Examples:
-• Headache since this morning, sharp pain on the left side
-• Fever 102°F for 2 days, with chills and body aches  
-• Chest pain when breathing deeply, started after exercise
-• Persistent cough for a week, with yellow phlegm
-• Stomach pain after eating, nausea and vomiting
-
-Include: when it started, severity (1-10), location, what makes it better/worse"
+          placeholder="Describe your symptoms in detail... (e.g., headache since morning, fever 102°F, fatigue, nausea, etc.)"
           value={symptoms}
           onChange={onSymptomsChange}
+          className="glow-effect"
           style={{
             width: "100%",
             height: "200px",
             padding: "25px",
             fontSize: "16px",
-            borderRadius: "16px",
-            border: "3px solid #e2e8f0",
+            borderRadius: "20px",
+            border: "2px solid rgba(255,255,255,0.3)",
             resize: "vertical",
             outline: "none",
             transition: "all 0.3s ease",
             boxSizing: "border-box",
-            background: "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)",
-            boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+            background: "rgba(255,255,255,0.9)",
+            backdropFilter: "blur(5px)",
+            boxShadow:
+              "inset 0 2px 5px rgba(0,0,0,0.1), 0 4px 10px rgba(255,255,255,0.1)",
             fontFamily: "inherit",
             lineHeight: "1.6",
+            color: "#2d3748",
           }}
           onFocus={(e) => {
             e.target.style.borderColor = "#667eea";
-            e.target.style.background =
-              "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)";
-            e.target.style.boxShadow = "0 6px 20px rgba(102, 126, 234, 0.15)";
+            e.target.style.background = "rgba(255,255,255,0.95)";
+            e.target.style.boxShadow =
+              "inset 0 2px 10px rgba(0,0,0,0.1), 0 8px 25px rgba(102,126,234,0.2)";
+            e.target.style.transform = "translateY(-2px)";
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = "#e2e8f0";
-            e.target.style.background =
-              "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)";
-            e.target.style.boxShadow = "0 4px 15px rgba(0,0,0,0.1)";
+            e.target.style.borderColor = "rgba(255,255,255,0.3)";
+            e.target.style.background = "rgba(255,255,255,0.9)";
+            e.target.style.boxShadow =
+              "inset 0 2px 10px rgba(0,0,0,0.1), 0 4px 20px rgba(255,255,255,0.1)";
+            e.target.style.transform = "translateY(0)";
           }}
         />
 
@@ -71,91 +83,48 @@ Include: when it started, severity (1-10), location, what makes it better/worse"
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginTop: "12px",
-            fontSize: "12px",
-            color: "#718096",
-            flexWrap: "wrap",
-            gap: "10px",
+            marginTop: "15px",
+            fontSize: "13px",
+            color: "rgba(255,255,255,0.8)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          <div>
             {symptoms.trim() && (
               <span
                 style={{
-                  color:
-                    wordCount >= 15
-                      ? "#48bb78"
-                      : wordCount >= 8
-                      ? "#ed8936"
-                      : "#e53e3e",
-                  fontWeight: "600",
-                  padding: "4px 8px",
-                  borderRadius: "12px",
+                  color: wordCount >= 10 ? "#48bb78" : "#f6ad55",
+                  fontWeight: "700",
                   background:
-                    wordCount >= 15
-                      ? "#f0fff4"
-                      : wordCount >= 8
-                      ? "#fffaf0"
-                      : "#fed7d7",
+                    wordCount >= 10
+                      ? "rgba(72,187,120,0.2)"
+                      : "rgba(246,173,85,0.2)",
+                  padding: "4px 12px",
+                  borderRadius: "20px",
+                  border: `1px solid ${
+                    wordCount >= 10 ? "#48bb78" : "#f6ad55"
+                  }`,
+                  backdropFilter: "blur(5px)",
                 }}
               >
                 {wordCount} words{" "}
-                {wordCount < 8 && "(add more details for better analysis)"}
+                {wordCount < 10 && "(add more details for better analysis)"}
               </span>
             )}
-            <span
-              style={{
-                color: "#667eea",
-                fontWeight: "600",
-                padding: "4px 8px",
-                borderRadius: "12px",
-                background: "#edf2f7",
-              }}
-            >
-              💡 Be specific for accurate results
-            </span>
           </div>
-        </div>
-
-        {/* Helpful examples */}
-        {!symptoms.trim() && (
           <div
             style={{
-              marginTop: "15px",
-              padding: "15px",
-              background: "linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%)",
-              borderRadius: "12px",
-              border: "2px solid #81e6d9",
+              textAlign: "right",
+              background: "rgba(255,255,255,0.1)",
+              padding: "6px 15px",
+              borderRadius: "15px",
+              color: "black",
+              backdropFilter: "blur(5px)",
+              border: "1px solid rgba(255,255,255,0.2)",
             }}
           >
-            <h4
-              style={{
-                margin: "0 0 10px 0",
-                color: "#234e52",
-                fontSize: "14px",
-                fontWeight: "700",
-              }}
-            >
-              💡 Tips for Better Analysis:
-            </h4>
-            <ul
-              style={{
-                margin: "0",
-                paddingLeft: "20px",
-                color: "#2c7a7b",
-                fontSize: "12px",
-                lineHeight: "1.5",
-              }}
-            >
-              <li>Include when symptoms started (hours, days, weeks)</li>
-              <li>Rate pain/discomfort on scale of 1-10</li>
-              <li>Mention exact location on your body</li>
-              <li>Describe what makes it better or worse</li>
-              <li>List any associated symptoms</li>
-              <li>Mention relevant medical history if applicable</li>
-            </ul>
+            💡 Include: duration, severity, triggers, location
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

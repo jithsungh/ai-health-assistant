@@ -7,6 +7,7 @@ export const useHospitals = () => {
   const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [hospitalsError, setHospitalsError] = useState("");
   const [radius, setRadius] = useState(15); // Default 15km radius
+  const [lastSearchParams, setLastSearchParams] = useState(null); // Store last search params for auto-refresh
 
   const searchNearbyHospitals = useCallback(
     async (lat, lng, hospitalType = "", searchRadius = radius) => {
@@ -17,6 +18,9 @@ export const useHospitals = () => {
 
       setLoadingHospitals(true);
       setHospitalsError("");
+
+      // Store search params for future use
+      setLastSearchParams({ lat, lng, hospitalType, searchRadius });
 
       try {
         const result = await healthAPI.findNearbyHospitals(
@@ -39,9 +43,21 @@ export const useHospitals = () => {
     [radius]
   );
 
-  const updateRadius = useCallback((newRadius) => {
-    setRadius(newRadius);
-  }, []);
+  const updateRadius = useCallback(
+    (newRadius) => {
+      setRadius(newRadius);
+
+      // Automatically search with new radius if we have previous search params
+      if (lastSearchParams) {
+        const { lat, lng, hospitalType } = lastSearchParams;
+        // Use setTimeout to avoid too frequent API calls
+        setTimeout(() => {
+          searchNearbyHospitals(lat, lng, hospitalType, newRadius);
+        }, 300);
+      }
+    },
+    [lastSearchParams, searchNearbyHospitals]
+  );
 
   const clearHospitals = useCallback(() => {
     setHospitals([]);

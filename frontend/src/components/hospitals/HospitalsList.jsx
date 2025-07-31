@@ -10,16 +10,6 @@ const HospitalsList = ({
   onSearchHospitals,
   hospitalType = "",
 }) => {
-  const handleRadiusChange = (newRadius) => {
-    onRadiusChange(newRadius);
-    // Automatically search when radius changes
-    if (onSearchHospitals) {
-      setTimeout(() => {
-        onSearchHospitals(hospitalType, newRadius);
-      }, 300); // Small delay for better UX
-    }
-  };
-
   return (
     <div
       style={{
@@ -48,7 +38,7 @@ const HospitalsList = ({
       </h2>
 
       {/* Radius Slider */}
-      <RadiusSlider radius={radius} onRadiusChange={handleRadiusChange} />
+      <RadiusSlider radius={radius} onRadiusChange={onRadiusChange} />
 
       {loadingHospitals ? (
         <div
@@ -98,54 +88,61 @@ const HospitalsList = ({
               key={index}
               style={{
                 background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-                borderRadius: "16px",
-                padding: "25px",
-                boxShadow: "0 8px 25px rgba(0,0,0,0.1)",
+                borderRadius: "20px",
+                padding: "30px",
+                boxShadow:
+                  "0 10px 30px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)",
                 border: "2px solid #e2e8f0",
                 transition: "all 0.3s ease",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = "translateY(-5px)";
-                e.target.style.boxShadow = "0 12px 35px rgba(0,0,0,0.15)";
-                e.target.style.borderColor = "#667eea";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = "translateY(0)";
-                e.target.style.boxShadow = "0 8px 25px rgba(0,0,0,0.1)";
-                e.target.style.borderColor = "#e2e8f0";
+                position: "relative",
+                overflow: "hidden",
               }}
             >
+              {/* Gradient overlay */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: "4px",
+                  background:
+                    "linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
+                }}
+              />
+
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  marginBottom: "15px",
+                  marginBottom: "20px",
                 }}
               >
                 <div
                   style={{
-                    fontSize: "32px",
-                    marginRight: "15px",
+                    fontSize: "2.5rem",
+                    marginRight: "20px",
                     background:
                       "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                    borderRadius: "50%",
-                    width: "50px",
-                    height: "50px",
+                    borderRadius: "15px",
+                    width: "60px",
+                    height: "60px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
                   }}
                 >
                   🏥
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <h3
                     style={{
-                      fontSize: "1.3rem",
+                      fontSize: "1.4rem",
                       fontWeight: "700",
                       color: "#2d3748",
-                      margin: "0",
+                      margin: "0 0 8px 0",
+                      lineHeight: "1.3",
                     }}
                   >
                     {hospital.name}
@@ -154,14 +151,19 @@ const HospitalsList = ({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      marginTop: "5px",
+                      gap: "15px",
+                      flexWrap: "wrap",
                     }}
                   >
                     <span
                       style={{
                         color: "#48bb78",
-                        fontSize: "14px",
+                        fontSize: "0.9rem",
                         fontWeight: "600",
+                        background: "#f0fff4",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        border: "1px solid #9ae6b4",
                       }}
                     >
                       ⭐ {hospital.rating || "N/A"}
@@ -170,9 +172,12 @@ const HospitalsList = ({
                       <span
                         style={{
                           color: "#667eea",
-                          fontSize: "14px",
+                          fontSize: "0.9rem",
                           fontWeight: "600",
-                          marginLeft: "15px",
+                          background: "#edf2f7",
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          border: "1px solid #cbd5e0",
                         }}
                       >
                         📍 {hospital.distance}
@@ -182,24 +187,43 @@ const HospitalsList = ({
                 </div>
               </div>
 
-              <p
+              {/* Address with better styling */}
+              <div
                 style={{
-                  color: "#4a5568",
-                  fontSize: "14px",
-                  margin: "15px 0",
-                  lineHeight: "1.6",
+                  background: "rgba(102, 126, 234, 0.05)",
+                  padding: "15px",
+                  borderRadius: "12px",
+                  marginBottom: "15px",
+                  border: "1px solid rgba(102, 126, 234, 0.1)",
                 }}
               >
-                📍 {hospital.address}
-              </p>
+                <p
+                  style={{
+                    color: "#4a5568",
+                    fontSize: "0.95rem",
+                    margin: "0",
+                    lineHeight: "1.5",
+                    fontWeight: "500",
+                  }}
+                >
+                  📍{" "}
+                  {hospital.vicinity ||
+                    hospital.address ||
+                    "Address not available"}
+                </p>
+              </div>
 
               {hospital.phone && (
                 <p
                   style={{
                     color: "#48bb78",
-                    fontSize: "14px",
+                    fontSize: "0.9rem",
                     fontWeight: "600",
-                    margin: "10px 0",
+                    margin: "12px 0",
+                    background: "#f0fff4",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #9ae6b4",
                   }}
                 >
                   📞 {hospital.phone}
@@ -212,14 +236,14 @@ const HospitalsList = ({
                     color: hospital.openingHours.includes("Open")
                       ? "#48bb78"
                       : "#ed8936",
-                    fontSize: "12px",
+                    fontSize: "0.85rem",
                     fontWeight: "600",
-                    margin: "10px 0",
-                    padding: "5px 10px",
+                    margin: "12px 0",
+                    padding: "8px 12px",
                     background: hospital.openingHours.includes("Open")
                       ? "#f0fff4"
                       : "#fffaf0",
-                    borderRadius: "6px",
+                    borderRadius: "8px",
                     border: hospital.openingHours.includes("Open")
                       ? "1px solid #9ae6b4"
                       : "1px solid #fbd38d",
@@ -230,9 +254,9 @@ const HospitalsList = ({
               )}
 
               {hospital.types && hospital.types.length > 0 && (
-                <div style={{ marginTop: "15px" }}>
+                <div style={{ marginTop: "15px", marginBottom: "20px" }}>
                   <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}
+                    style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}
                   >
                     {hospital.types.slice(0, 3).map((type, typeIndex) => (
                       <span
@@ -241,10 +265,11 @@ const HospitalsList = ({
                           background:
                             "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                           color: "white",
-                          padding: "3px 8px",
-                          borderRadius: "12px",
-                          fontSize: "11px",
+                          padding: "4px 10px",
+                          borderRadius: "15px",
+                          fontSize: "0.75rem",
                           fontWeight: "600",
+                          textTransform: "capitalize",
                         }}
                       >
                         {type.replace(/_/g, " ")}
@@ -254,37 +279,46 @@ const HospitalsList = ({
                 </div>
               )}
 
-              {hospital.googleMapsUrl && (
-                <button
-                  onClick={() => window.open(hospital.googleMapsUrl, "_blank")}
-                  style={{
-                    width: "100%",
-                    marginTop: "15px",
-                    padding: "12px",
-                    background:
-                      "linear-gradient(135deg, #48bb78 0%, #38a169 100%)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "10px",
-                    fontSize: "14px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = "scale(1.02)";
-                    e.target.style.background =
-                      "linear-gradient(135deg, #38a169 0%, #2f855a 100%)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = "scale(1)";
-                    e.target.style.background =
-                      "linear-gradient(135deg, #48bb78 0%, #38a169 100%)";
-                  }}
-                >
-                  🗺️ Get Directions
-                </button>
-              )}
+              {/* Navigation Button with place_id */}
+              <button
+                onClick={() => {
+                  const placeId = hospital.place_id;
+                  const hospitalName = encodeURIComponent(hospital.name);
+                  let mapsUrl;
+
+                  if (placeId) {
+                    // Use place_id if available
+                    mapsUrl = `https://www.google.com/maps/search/?api=1&query=${hospitalName}&query_place_id=${placeId}`;
+                  } else {
+                    // Fallback to name and address search
+                    const address = encodeURIComponent(
+                      hospital.vicinity || hospital.address || ""
+                    );
+                    mapsUrl = `https://www.google.com/maps/search/?api=1&query=${hospitalName}+${address}`;
+                  }
+
+                  window.open(mapsUrl, "_blank");
+                }}
+                style={{
+                  width: "100%",
+                  marginTop: "15px",
+                  padding: "15px 20px",
+                  background:
+                    "linear-gradient(135deg, #48bb78 0%, #38a169 100%)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "12px",
+                  fontSize: "1rem",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  boxShadow: "0 4px 15px rgba(72, 187, 120, 0.3)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                🗺️ Navigate to Hospital
+              </button>
             </div>
           ))}
         </div>

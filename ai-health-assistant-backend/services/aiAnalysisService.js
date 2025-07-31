@@ -17,11 +17,13 @@ class AIAnalysisService {
 
 Based on the symptoms provided, return a JSON object with the following fields:
 - detectedSymptoms: extracted symptoms and a clear summary of the symptoms
-- hospitalType: The most appropriate type of hospital - for searching in google maps (e.g., "Hospital" - for general purpose, "Cardio" or "Heart Hospital", "Skin Clinic", "Eye care", "Emergency hospital", "Orthopedic Hospital", etc.)
+- hospitalType: The most appropriate type of hospital for Google Maps search. Use ONLY ONE of these exact terms: "Hospital", "Eye Hospital", "Heart Hospital", "Dental Clinic", "Orthopedic Hospital", "Skin Clinic", "Emergency Hospital", "Pediatric Hospital", "Maternity Hospital", "Mental Health Clinic"
 - possible-reasons: Possible medical reasons for these symptoms - array of bullets
 - dietPlan: An array of dietary recommendations - array of bullets
 - severity: "Low", "Medium", or "High"
 - urgency: "Routine", "Urgent", or "Emergency"
+
+IMPORTANT: For hospitalType, use exact spelling and proper names. Do not use typos or variations.
 
 Symptoms: ${symptoms}`;
 
@@ -69,40 +71,56 @@ Symptoms: ${symptoms}`;
 
   getFallbackAnalysis(symptoms) {
     const commonSymptoms = symptoms.toLowerCase();
-    let hospitalType = "General Medicine";
+    let hospitalType = "Hospital";
     let severity = "Low";
     let urgency = "Routine";
-    let possibleReasons =
-      "Common symptoms that may require basic medical evaluation.";
+    let possibleReasons = [
+      "Common symptoms that may require basic medical evaluation",
+    ];
 
-    // Basic symptom analysis
+    // Basic symptom analysis with proper hospital types
     if (
       commonSymptoms.includes("chest pain") ||
-      commonSymptoms.includes("heart")
+      commonSymptoms.includes("heart") ||
+      commonSymptoms.includes("cardiac")
     ) {
-      hospitalType = "Cardiology";
+      hospitalType = "Heart Hospital";
       severity = "High";
       urgency = "Urgent";
-      possibleReasons =
-        "Chest pain could indicate cardiovascular issues and requires immediate medical attention.";
+      possibleReasons = [
+        "Chest pain could indicate cardiovascular issues and requires immediate medical attention",
+      ];
+    } else if (
+      commonSymptoms.includes("eye") ||
+      commonSymptoms.includes("vision") ||
+      commonSymptoms.includes("sight")
+    ) {
+      hospitalType = "Eye Hospital";
+      severity = "Medium";
+      urgency = "Routine";
+      possibleReasons = [
+        "Eye-related symptoms that may require ophthalmologic evaluation",
+      ];
     } else if (
       commonSymptoms.includes("fever") &&
       commonSymptoms.includes("severe")
     ) {
-      hospitalType = "Emergency";
+      hospitalType = "Emergency Hospital";
       severity = "Medium";
       urgency = "Urgent";
-      possibleReasons =
-        "High fever may indicate infection or other conditions requiring prompt treatment.";
+      possibleReasons = [
+        "High fever may indicate infection or other conditions requiring prompt treatment",
+      ];
     } else if (
       commonSymptoms.includes("headache") ||
       commonSymptoms.includes("migraine")
     ) {
-      hospitalType = "Neurology";
-      severity = "Low";
+      hospitalType = "Hospital";
+      severity = "Medium";
       urgency = "Routine";
-      possibleReasons =
-        "Headaches can have various causes from stress to neurological conditions.";
+      possibleReasons = [
+        "Headaches may have various causes and should be evaluated by a healthcare provider",
+      ];
     }
 
     return {

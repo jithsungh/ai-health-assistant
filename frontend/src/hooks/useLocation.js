@@ -82,7 +82,12 @@ export const useLocation = () => {
     isGettingLocation,
     getCurrentLocation,
     clearLocation,
-    hasLocation: lat !== null && lng !== null,
+    hasLocation:
+      lat !== null &&
+      lng !== null &&
+      address &&
+      address !== "Address not available" &&
+      address !== "Address not found",
   };
 };
 

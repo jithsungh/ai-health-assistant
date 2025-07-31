@@ -16,17 +16,21 @@ const NavigationBar = ({
 }) => {
   return (
     <div
+      className="slide-in"
       style={{
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        padding: "20px 30px",
-        borderRadius: "20px",
+        background: "rgba(255,255,255,0.15)",
+        backdropFilter: "blur(20px)",
+        padding: "25px 35px",
+        borderRadius: "25px",
         marginBottom: "30px",
-        boxShadow: "0 10px 30px rgba(102, 126, 234, 0.3)",
+        boxShadow:
+          "0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)",
         position: "relative",
         overflow: "hidden",
+        border: "1px solid rgba(255,255,255,0.2)",
       }}
     >
-      {/* Background Pattern */}
+      {/* Glassmorphism background pattern */}
       <div
         style={{
           position: "absolute",
@@ -34,9 +38,12 @@ const NavigationBar = ({
           left: 0,
           right: 0,
           bottom: 0,
-          background:
-            'url(\'data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.1"><path d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/></g></g></svg>\')',
-          opacity: 0.1,
+          background: `
+            radial-gradient(circle at 20% 80%, rgba(120,119,198,0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255,255,255,0.15) 0%, transparent 50%),
+            radial-gradient(circle at 40% 40%, rgba(159,122,234,0.2) 0%, transparent 50%)
+          `,
+          pointerEvents: "none",
         }}
       />
 
@@ -46,7 +53,7 @@ const NavigationBar = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "20px",
+          marginBottom: "25px",
           position: "relative",
           zIndex: 2,
         }}
@@ -55,36 +62,42 @@ const NavigationBar = ({
         <button
           onClick={onBack}
           disabled={!canGoBack}
+          className="pulse-hover"
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "12px 20px",
             background: canGoBack
-              ? "rgba(255, 255, 255, 0.2)"
-              : "rgba(255, 255, 255, 0.1)",
-            border: "2px solid rgba(255, 255, 255, 0.3)",
-            color: canGoBack ? "white" : "rgba(255, 255, 255, 0.5)",
-            padding: "10px 16px",
-            borderRadius: "12px",
+              ? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)"
+              : "rgba(255,255,255,0.1)",
+            color: canGoBack ? "white" : "rgba(255,255,255,0.5)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            borderRadius: "15px",
             fontSize: "14px",
             fontWeight: "600",
             cursor: canGoBack ? "pointer" : "not-allowed",
             transition: "all 0.3s ease",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
+            boxShadow: canGoBack
+              ? "0 4px 15px rgba(99,102,241,0.4)"
+              : "0 2px 10px rgba(0,0,0,0.1)",
+            backdropFilter: "blur(10px)",
           }}
           onMouseEnter={(e) => {
             if (canGoBack) {
-              e.target.style.background = "rgba(255, 255, 255, 0.3)";
-              e.target.style.transform = "translateX(-3px)";
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 6px 20px rgba(99,102,241,0.6)";
             }
           }}
           onMouseLeave={(e) => {
             if (canGoBack) {
-              e.target.style.background = "rgba(255, 255, 255, 0.2)";
-              e.target.style.transform = "translateX(0)";
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 4px 15px rgba(99,102,241,0.4)";
             }
           }}
         >
-          ⬅️ Back
+          <span style={{ fontSize: "16px" }}>←</span>
+          Back
         </button>
 
         {/* Title */}
